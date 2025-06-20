@@ -1,0 +1,385 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Users, RotateCcw, Save, Play } from 'lucide-react';
+import Layout from '../../components/layout/Layout';
+import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
+import { API_ENDPOINTS } from '../../config/api';
+
+interface BackendQuestion {
+  id: number;
+  question_text: string;
+  type: 'mcq_single' | 'mcq_multiple' | 'numeric';
+  difficulty: 'easy' | 'medium' | 'hard';
+  bloom_level: string;
+  options?: { [key: string]: string };
+}
+
+interface Assessment {
+  id: number;
+  topic: string;
+  description: string;
+  bloom_level: string;
+  created_at: string;
+  questions: BackendQuestion[];
+}
+
+const ViewContent: React.FC = () => {
+  const navigate = useNavigate();
+  const { assessmentId } = useParams();
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch assessment data from backend
+  useEffect(() => {
+    const fetchAssessment = async () => {
+      if (!assessmentId) return;
+
+      try {
+        const response = await fetch(API_ENDPOINTS.getAssessment(Number(assessmentId)));
+        if (response.ok) {
+          const data = await response.json();
+          setAssessment(data);
+        } else {
+          setError(`Failed to load assessment: ${response.status}`);
+        }
+      } catch (error) {
+        setError(`Error loading assessment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssessment();
+  }, [assessmentId]);
+
+  // Generate educational content based on the topic
+  const generateContent = (topic: string, description: string) => {
+    const topicLower = topic.toLowerCase();
+    
+    if (topicLower.includes('aviation') || topicLower.includes('flight')) {
+      return {
+        part1: `The history of aviation is a fascinating journey of human innovation and determination. Aviation began with ancient dreams of flight, inspiring legends and early attempts at creating flying machines. The modern era of aviation started with the development of the hot air balloon by the Montgolfier brothers in 1783, marking humanity's first successful controlled flight.
+
+Early pioneers like Sir George Cayley, Otto Lilienthal, and Octave Chanute laid the groundwork for powered flight through their studies of aerodynamics and glider experiments. These early aviators understood the fundamental principles of lift, drag, thrust, and weight that govern all flight.
+
+The breakthrough came on December 17, 1903, when Orville and Wilbur Wright achieved the first powered, sustained, and controlled heavier-than-air human flight near Kitty Hawk, North Carolina. Their Wright Flyer flew for 12 seconds and covered 120 feet, forever changing the course of human transportation.`,
+
+        part2: `Following the Wright brothers' success, aviation development accelerated rapidly. World War I (1914-1918) became a catalyst for aviation advancement, as military applications drove innovation in aircraft design, engine technology, and manufacturing techniques.
+
+The post-war period saw the emergence of commercial aviation. Airlines began establishing regular passenger services, with companies like KLM (1919) and Qantas (1920) leading the way. Aircraft evolved from simple wood-and-fabric biplanes to more sophisticated metal monoplanes capable of longer flights and carrying more passengers.
+
+The introduction of the jet engine in the 1940s revolutionized aviation. Frank Whittle and Hans von Ohain independently developed jet propulsion, leading to faster, more efficient aircraft. The de Havilland Comet became the world's first commercial jet airliner in 1952, ushering in the jet age.`,
+
+        part3: `Modern aviation continues to evolve with advancing technology and changing global needs. The development of wide-body aircraft like the Boeing 747 "Jumbo Jet" in the 1970s made international travel more accessible and affordable for millions of people.
+
+Today's aviation industry faces new challenges and opportunities, including environmental sustainability, fuel efficiency, and the integration of digital technologies. Electric aircraft, supersonic passenger jets, and urban air mobility represent the future of aviation.
+
+Understanding aviation history helps us appreciate how human ingenuity has conquered the skies and continues to push the boundaries of what's possible in transportation and exploration.`
+      };
+    } else {
+      // Generic content generation for other topics
+      return {
+        part1: `Introduction to ${topic}: ${description}. This comprehensive overview will help you understand the fundamental concepts and importance of this subject area.
+
+The study of ${topic} involves multiple interconnected concepts that build upon each other to create a complete understanding. Through careful examination of the key principles, we can develop a deeper appreciation for how these concepts apply to real-world situations.
+
+This learning material is designed to guide you through the essential knowledge areas step by step, ensuring a solid foundation for further learning.`,
+
+        part2: `Building on the foundational concepts from Part 1, we now explore the more detailed aspects of ${topic}. This section examines the processes, mechanisms, and relationships that govern this field of study.
+
+Understanding these intermediate concepts is crucial for developing problem-solving skills and applying theoretical knowledge to practical situations. The interconnected nature of these concepts demonstrates the complexity and elegance of ${topic}.
+
+Through examples and explanations, you'll see how these principles work together to create the phenomena we observe and study.`,
+
+        part3: `The final section focuses on the broader implications and applications of ${topic}. This includes its significance in various contexts, real-world applications, and future developments in the field.
+
+By understanding these wider connections, you can appreciate how ${topic} relates to other areas of knowledge and its importance in addressing current and future challenges.
+
+This comprehensive understanding prepares you to apply your knowledge effectively and continue learning in related areas.`
+      };
+    }
+  };
+
+  const [questions] = useState<Question[]>([
+    // In-learning questions for Part 1
+    {
+      id: 'il1-1',
+      question: 'What does the word "photosynthesis" literally mean?',
+      options: ['Light and water', 'Light and putting together', 'Green and synthesis', 'Plant and energy'],
+      correctAnswer: 1,
+      type: 'in-learning',
+      section: 1
+    },
+    {
+      id: 'il1-2',
+      question: 'Where does photosynthesis primarily occur in plants?',
+      options: ['Roots', 'Stems', 'Leaves', 'Flowers'],
+      correctAnswer: 2,
+      type: 'in-learning',
+      section: 1
+    },
+
+    // In-learning questions for Part 2
+    {
+      id: 'il2-1',
+      question: 'What are the two main stages of photosynthesis?',
+      options: [
+        'Light and dark reactions',
+        'Fast and slow reactions', 
+        'Primary and secondary reactions',
+        'Internal and external reactions'
+      ],
+      correctAnswer: 0,
+      type: 'in-learning',
+      section: 2
+    },
+    {
+      id: 'il2-2',
+      question: 'Where do light-independent reactions occur?',
+      options: ['Thylakoid membranes', 'Cell wall', 'Stroma', 'Nucleus'],
+      correctAnswer: 2,
+      type: 'in-learning',
+      section: 2
+    },
+
+    // Final assessment questions
+    {
+      id: 'final-1',
+      question: 'Which of the following best describes the overall equation for photosynthesis?',
+      options: [
+        '6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂',
+        'C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + energy',
+        '6CO₂ + light energy → C₆H₁₂O₆ + O₂',
+        'H₂O + CO₂ → glucose + oxygen'
+      ],
+      correctAnswer: 0,
+      type: 'final'
+    },
+    {
+      id: 'final-2',
+      question: 'What is the primary function of chlorophyll in photosynthesis?',
+      options: [
+        'To produce oxygen',
+        'To capture light energy',
+        'To break down glucose',
+        'To absorb carbon dioxide'
+      ],
+      correctAnswer: 1,
+      type: 'final'
+    },
+    {
+      id: 'final-3',
+      question: 'Why is photosynthesis important for life on Earth?',
+      options: [
+        'It produces oxygen and forms the base of food chains',
+        'It only produces energy for plants',
+        'It creates carbon dioxide',
+        'It helps plants grow taller'
+      ],
+      correctAnswer: 0,
+      type: 'final'
+    }
+  ]);
+
+  const mockStudents = [
+    { id: '1', name: 'Alice Johnson', email: 'alice@school.edu' },
+    { id: '2', name: 'Bob Smith', email: 'bob@school.edu' },
+    { id: '3', name: 'Carol Davis', email: 'carol@school.edu' },
+    { id: '4', name: 'David Wilson', email: 'david@school.edu' },
+  ];
+
+  const inLearningQuestions = questions.filter(q => q.type === 'in-learning');
+  const finalQuestions = questions.filter(q => q.type === 'final');
+
+  const handleRegenerateQuestion = (questionId: string) => {
+    // Implement question regeneration logic
+    console.log('Regenerating question:', questionId);
+  };
+
+  const handleAssignStudents = () => {
+    console.log('Assigning to students:', selectedStudents);
+    setShowAssignModal(false);
+    // Show success message and navigate
+    navigate('/teacher');
+  };
+
+  const QuestionCard = ({ question, showRegenerate = false }: { question: Question; showRegenerate?: boolean }) => (
+    <Card className="p-4 bg-gray-50">
+      <div className="flex justify-between items-start mb-3">
+        <h4 className="font-medium text-gray-900">{question.question}</h4>
+        {showRegenerate && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleRegenerateQuestion(question.id)}
+            icon={RotateCcw}
+            className="text-primary-600"
+          >
+            Regenerate
+          </Button>
+        )}
+      </div>
+      <div className="space-y-2">
+        {question.options.map((option, index) => (
+          <div key={index} className={`p-2 rounded text-sm ${
+            index === question.correctAnswer 
+              ? 'bg-success-100 text-success-800 font-medium' 
+              : 'bg-white text-gray-700'
+          }`}>
+            {String.fromCharCode(65 + index)}. {option}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+
+  return (
+    <Layout>
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/teacher')}
+              icon={ArrowLeft}
+            >
+              Back to Dashboard
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{assessmentData.topic}</h1>
+              <p className="text-gray-600">{assessmentData.description}</p>
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" icon={Save}>
+              Save Changes
+            </Button>
+            <Button onClick={() => setShowAssignModal(true)} icon={Users}>
+              Assign Students
+            </Button>
+          </div>
+        </div>
+
+        {/* Content Sections */}
+        <div className="space-y-8">
+          {/* Part 1 */}
+          <Card>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Part 1: Introduction</h2>
+            <div className="prose max-w-none mb-6">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{content.part1}</p>
+            </div>
+            
+            <h3 className="text-lg font-medium text-gray-900 mb-4">In-Learning Assessment 1</h3>
+            <div className="space-y-4">
+              {inLearningQuestions.filter(q => q.section === 1).map(question => (
+                <QuestionCard key={question.id} question={question} />
+              ))}
+            </div>
+          </Card>
+
+          {/* Part 2 */}
+          <Card>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Part 2: Process Details</h2>
+            <div className="prose max-w-none mb-6">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{content.part2}</p>
+            </div>
+            
+            <h3 className="text-lg font-medium text-gray-900 mb-4">In-Learning Assessment 2</h3>
+            <div className="space-y-4">
+              {inLearningQuestions.filter(q => q.section === 2).map(question => (
+                <QuestionCard key={question.id} question={question} />
+              ))}
+            </div>
+          </Card>
+
+          {/* Part 3 */}
+          <Card>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Part 3: Importance and Applications</h2>
+            <div className="prose max-w-none">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{content.part3}</p>
+            </div>
+          </Card>
+
+          {/* Final Assessment */}
+          <Card>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Final Assessment</h2>
+              <span className="text-sm text-gray-600">{finalQuestions.length} questions</span>
+            </div>
+            
+            <div className="space-y-4">
+              {finalQuestions.map((question, index) => (
+                <div key={question.id}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-gray-900">Question {index + 1}</h4>
+                  </div>
+                  <QuestionCard question={question} showRegenerate />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Assign Students Modal */}
+        <Modal
+          isOpen={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          title="Assign Assessment to Students"
+          size="md"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Select students who should receive this assessment:
+            </p>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {mockStudents.map(student => (
+                <label key={student.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={selectedStudents.includes(student.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedStudents(prev => [...prev, student.id]);
+                      } else {
+                        setSelectedStudents(prev => prev.filter(id => id !== student.id));
+                      }
+                    }}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{student.name}</div>
+                    <div className="text-sm text-gray-600">{student.email}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setShowAssignModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssignStudents}
+                disabled={selectedStudents.length === 0}
+                icon={Play}
+              >
+                Assign Assessment ({selectedStudents.length})
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    </Layout>
+  );
+};
+
+export default ViewContent;

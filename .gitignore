@@ -1,0 +1,12 @@
+*/venv/
+/venv
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore Node.js dependencies
+#node_modules/
+#package-lock.json
+
+# Ignore environment files (if any)
+.env
